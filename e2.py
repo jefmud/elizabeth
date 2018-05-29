@@ -5,24 +5,56 @@ import easygui
 import os
 import datetime
 
+DEVICE = "box1"
+EXTENSION = 'jpg'
+
+def timestamp(date=True,time=True):
+	current = datetime.datetime.now()
+	if date and time:
+		return current.strftime("%Y%m%d_%H%M%S")
+	elif date:
+		return current.strftime("%Y%m%d")
+	return current.strftime("%H%M%S")
+
+def timestamp_name(date=True, time=True, device=None, extension=None):
+	if device is None:
+		device = DEVICE
+	if extension is None:
+		extension = EXTENSION
+	return '{}_{}.{}'.format(device, timestamp(date, time), extension)
+	
 camera = PiCamera()
 basefolder = "./capture"
 
 easygui.msgbox("Welcome to Muday Lab Root Snap Program")
 
 while True:
+	prompt = 'What is the unique name (or number) of this seedling box?\n Note: A name is required to uniquely identify the seedling box'
+	device = easygui.enterbox(prompt, title="Specify Device name", default=DEVICE)
+	if device is None:
+		if not easygui.ynbox("Do you want to continue?"):
+			easygui.msgbox("Program cancelled.  Exiting")
+			sys.exit(0)
+	else:
+		DEVICE = device
+		break
+
+while True:
 	prompt = "Enter Resolution 1=1024x768, 2=2592,1944, or custom resolution separated by commas, ENTER to quit: "
-	resolution = easygui.enterbox(prompt)
+	resolution = easygui.enterbox(prompt, title="Specify Resolution")
 	#resolution = input(prompt)
+	
+	if resolution is None or resolution == "":
+		print("Exiting")
+		sys.exit(0)
+		
 	if resolution == '1':
 		camera.resolution = (1024, 768)
 		break
 	if resolution == '2':
 		camera.resolution = (2592, 1944)
 		break
-	if resolution == "":
-		print("Exiting")
-		sys.exit(0)
+	
 	if ',' in resolution:
 		try:
 			x,y = resolution.split(',')
@@ -34,7 +66,7 @@ while True:
 		
 
 while True:
-	easygui.msgbox("Click OK to start 10 second preview")
+	easygui.msgbox("Click OK to start 10 second preview", title="Preview")
 	#camera.start_preview(alpha=255)
 	camera.start_preview(alpha=255, fullscreen=False, window=(30,30,512,389))
 	sleep(10)
@@ -49,37 +81,35 @@ while True:
 		
 
 
+
+
+#camera.zoom = (0.2, 0.2, 0.6, 0.6)
+
+
+			
+while True:
+	folder = easygui.enterbox('Enter directory to save snaps (leave blank for "capture" subdir): ', title="Select Directory")
+	if folder is None or folder == "":
+		capture_folder = os.path.join(basefolder, timestamp(date=True, time=False))
+	else:
+		capture_folder = os.path.join(folder, timestamp(date=True,time=False))
+		
+	if not os.path.exists(capture_folder):
+		print("Directory created")
+		os.makedirs(capture_folder)
+		
+	print("Captures will be saved into > {}".format(capture_folder))
+	break
+
+# Test snap
 camera.crop = (0.0, 0.0, 1.0, 1.0)
 sleep(2)
-camera.capture('./capture/image.jpg')
-print("snap")
-
-camera.zoom = (0.2, 0.2, 0.6, 0.6)
-
-def timestamp(date=True,time=True):
-	current = datetime.datetime.now()
-	if date and time:
-		return current.strftime("%Y%m%d_%H%M%S")
-	elif date:
-		return current.strftime("%Y%m%d")
-	return current.strftime("%H%M%S")
-	
+filename = os.path.join(capture_folder,'preview.jpg')
+camera.capture(filename)
+print("preview snapshot > {}".format(filename))
 
 while True:
-	folder = easygui.enterbox('Enter directory to save snaps (leave blank for "capture" subdir): ')
-	if folder is None:
-		capture_folder = os.join(basefolder, timestamp)
-		easygui.msgbox("Program cancelled.  Exiting")
-		sys.exit(0)
-		
-	try:
-		minutes = int(minutes)
-		break
-	except:
-		easygui.msgbox("Error: please enter an integer value")
-
-while True:
-	minutes = easygui.enterbox("Enter number of MINUTES to run: ")
+	minutes = easygui.enterbox("Enter number of MINUTES to run: ", title="Minutes")
 	if minutes is None:
 		easygui.msgbox("Program cancelled.  Exiting")
 		sys.exit(0)
@@ -90,8 +120,10 @@ while True:
 	except:
 		easygui.msgbox("Error: please enter an integer value")
 		
+print("Total number of minutes > {}".format(minutes))
+		
 while True:
-	snapdelay = easygui.enterbox("Enter delay between captures in SECONDS: ")
+	snapdelay = easygui.enterbox("Enter delay between captures in SECONDS: ", title="Delay")
 	if snapdelay is None:
 		easygui.msgbox("Program cancelled.  Exiting")
 		sys.exit(0)
@@ -101,11 +133,15 @@ while True:
 		break
 	except:
 		easygui.msgbox("Error: please enter an integer value")
-numberofsnaps = minutes*60/snapdelay
+		
+numberofsnaps = int(minutes*60/snapdelay)
+print("Delay between snaps = {}".format(snapdelay))
+print("Number of snaps = {}".format(numberofsnaps))
 		
 for i in range(numberofsnaps):
+    filename = os.path.join(capture_folder, timestamp_name())
+    camera.capture(filename)
+    print("snap {}/{} filename={}".format(i+1,numberofsnaps,filename))
     sleep(snapdelay)
-    print("snap {}".format(i))
-    camera.capture('./capture/image%06d.jpg' % i)
     
 easygui.msgbox("Done.  Thank you for using the program.\nPlease check the folder for your snaps.")
