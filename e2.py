@@ -16,11 +16,14 @@ def timestamp(date=True,time=True):
 		return current.strftime("%Y%m%d")
 	return current.strftime("%H%M%S")
 
-def timestamp_name(date=True, time=True, device=None, extension=None):
+def timestamp_name(date=True, time=True, device=None, extension=None, elapsed_minutes=None):
 	if device is None:
 		device = DEVICE
 	if extension is None:
 		extension = EXTENSION
+	if elapsed_minutes >= 0:
+		return '{0}_{1}_{2:04d}.{3}'.format(device, timestamp(date, time), elapsed_minutes, extension)
+		
 	return '{}_{}.{}'.format(device, timestamp(date, time), extension)
 	
 camera = PiCamera()
@@ -66,10 +69,12 @@ while True:
 		
 
 while True:
-	easygui.msgbox("Click OK to start 10 second preview", title="Preview")
+	easygui.msgbox("Click OK to start 5 second preview", title="Preview")
 	#camera.start_preview(alpha=255)
+	#camera.zoom = (0.2, 0.2, 0.6, 0.6)
+	camera.zoom = (0.37,0.37,0.27,0.27)
 	camera.start_preview(alpha=255, fullscreen=False, window=(30,30,512,389))
-	sleep(10)
+	sleep(5)
 	camera.stop_preview()
 	resp = easygui.ynbox("Are you ready to begin?")
 	if resp == True:
@@ -102,7 +107,7 @@ while True:
 	break
 
 # Test snap
-camera.crop = (0.0, 0.0, 1.0, 1.0)
+#camera.crop = (0.0, 0.0, 1.0, 1.0)
 sleep(2)
 filename = os.path.join(capture_folder,'preview.jpg')
 camera.capture(filename)
@@ -139,7 +144,7 @@ print("Delay between snaps = {}".format(snapdelay))
 print("Number of snaps = {}".format(numberofsnaps))
 		
 for i in range(numberofsnaps):
-    filename = os.path.join(capture_folder, timestamp_name())
+    filename = os.path.join(capture_folder, timestamp_name(elapsed_minutes=int(i*snapdelay/60)))
     camera.capture(filename)
     print("snap {}/{} filename={}".format(i+1,numberofsnaps,filename))
     sleep(snapdelay)
