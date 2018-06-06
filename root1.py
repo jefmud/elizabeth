@@ -1,4 +1,4 @@
-# Test the live preview capabilities of the camera and save the settings to a file
+# Root Protocol #1
 # this program is in its very alpha stages, so it is decidedly inelegant!
 #
 # Jeff Muday, Wake Forest University 2018
@@ -18,7 +18,7 @@ DEBUG = True
 
 
 # set up main App and Camera
-app = App(title="Camera Preview", width=1024, height=768, layout="grid")
+app = App(title="Mudaylab Root Protocol", width=1024, height=768, layout="grid")
 camera = PiCamera()
 camera_settings_file = "camera_settings.txt"
 
@@ -128,14 +128,19 @@ def preview_change(args):
 	camera.zoom = (cx,cy,cw,ch)
 	
 def exposure_change(args):
+	global cb, cc, cex
 	if DEBUG: print("exposure change: ", args)
 	if args=="auto":
 		if cbx_auto.value:
+			if DEBUG: print("auto checked")
+			cex="auto"
 			camera.exposure_mode="off"
 			cb = camera.brightness
 			cc = camera.contrast
 			update_text_boxes()
 		else:
+			cex="manual"
+			if DEBUG: print("auto un-checked")
 			update_text_boxes()
 		
 	if args == "apply" and cbx_auto.value == False:
@@ -155,7 +160,6 @@ def exposure_change(args):
 			
 	
 def save_settings():
-	#resp = ynbox('Are you sure?')
 	with open(camera_settings_file,'w') as fp:
 		buf='x={0:.2f}\ny={1:.2f}\nw={2:.2f}\nh={3:.2f}\n'.format(cx,cy,cw,ch)
 		buf+='exposure={0}\nbright={1}\ncont={2}'.format(cex,cb,cc)
@@ -170,7 +174,7 @@ def main_protocol():
 	basefolder = "./capture"
 
 	camera.stop_preview()
-	
+	save_settings()
 	
 	easygui.msgbox("Welcome to the Mudaylab Root Protocol")
 	
@@ -263,14 +267,21 @@ def main_protocol():
 	numberofsnaps = int(minutes*60/snapdelay)
 	print("Delay between snaps = {}".format(snapdelay))
 	print("Number of snaps = {}".format(numberofsnaps))
+	txt_proto.value="PROTOCOL ACTIVE, PLEASE DO NOT DISTURB!!"
+	txt_proto.show()
 			
 	for i in range(numberofsnaps+1):
 	    filename = os.path.join(capture_folder, timestamp_name(device=DEVICE, elapsed_minutes=int(i*snapdelay/60)))
 	    camera.capture(filename)
 	    print("snap {}/{} filename={}".format(i+1,numberofsnaps,filename))
 	    sleep(snapdelay)
-	    
+	
+	txt_proto.value="PROTOCOL COMPLETE"
+	txt_proto.show()
 	easygui.msgbox("Protocol Complete! \nPlease check the folder for your snaps.")
+	
+	txt_proto.value = ""
+	txt_proto.show()
 	return True
 	
 # preview window, has to be mostly static (for now)
@@ -290,6 +301,9 @@ cb = camera.brightness # camera brightness (0-100)
 cc = camera.contrast # camera contrast (-+50)
 cex='auto' # camera exposure see documentation
 camera.resolution = (1024, 768)
+
+# protocol active label
+txt_proto = Text(app, text="", size=16, color="red", grid=[0,7,8,1])
 
 # top level buttons
 btn1 = PushButton(app, text="Open Preview", command=preview_show, grid=[0,0,2,1])
